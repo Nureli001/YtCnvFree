@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+  <html lang="az">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreePy — YouTube Yükləyici</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+
+    <div class="header">
+      <div class="title">FreePy · YouTube Yükləyici</div>
+      <div class="meta" id="statusLine">Hazırdır ✓ · Offline ✕</div>
+    </div>
+
+    <div class="card">
+      <input id="urlInput" type="text" placeholder="YouTube linkini daxil et (məs. https://youtu.be/xxxx)" 
+  spellcheck="false">
+      <button id="fetchBtn">Məlumat al</button>
+    </div>
+
+    <div id="infoBox" class="info-box hidden">
+      <img id="thumb" class="thumb" alt="">
+      <div class="info-text">
+        <div id="infoTitle" class="info-title"></div>
+        <div id="infoMeta" class="info-meta"></div>
+      </div>
+    </div>
+
+    <div class="controls hidden" id="controls">
+      <div class="field">
+        <label for="audioSel">Audio keyfiyyəti</label>
+        <select id="audioSel"></select>
+      </div>
+      <div class="field">
+        <label for="videoSel">Video keyfiyyəti</label>
+        <select id="videoSel"></select>
+      </div>
+      <div class="field">
+        <label for="typeSel">Növ</label>
+        <select id="typeSel">
+          <option value="audio">Yalnız Audio (m4a/webm)</option>
+          <option value="video">Yalnız Video (mp4, ses ola bilər)</option>
+          <option value="both">Audio + Video (2 fayl)</option>
+        </select>
+      </div>
+      <button id="downloadBtn">⬇ Yüklə</button>
+    </div>
+
+    <div class="progress-wrap hidden" id="progressWrap">
+      <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+      <div id="progressText" class="progress-text">0%</div>
+    </div>
+
+    <div id="log" class="log"></div>
+
+    <div class="history-wrap">
+      <div class="history-title">Yükləmə tarixi (brauzerdə saxlanır)</div>
+      <ul id="historyList" class="history-list"></ul>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+  </html>
+
+  style.css
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    padding: 14px;
+  }
+  .header {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+  }
+  .title { font-weight: 700; font-size: 17px; }
+  .meta { font-size: 12px; color: #8b949e; margin-top: 2px; }
+
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  #urlInput {
+    flex: 1;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    padding: 10px 12px;
+    font-size: 14px;
+    outline: none;
+  }
+  #urlInput:focus { border-color: #238636; }
+  button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #fetchBtn { background: #238636; color: #fff; }
+  #fetchBtn:disabled, #downloadBtn:disabled { background: #4c566a; cursor: not-allowed; }
+  #downloadBtn { background: #1f6feb; color: #fff; }
+  button:hover:not(:disabled) { filter: brightness(1.1); }
+
+  .info-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  .thumb { width: 120px; height: 68px; object-fit: cover; border-radius: 6px; background: #0d1117; }
+  .info-title { font-weight: 600; font-size: 14px; line-height: 1.3; }
+  .info-meta { font-size: 12px; color: #8b949e; margin-top: 4px; }
+
+  .controls {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 14px;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: #8b949e; }
+  .field select {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    padding: 9px 10px;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .progress-wrap { margin-bottom: 14px; }
+  .progress { background: #30363d; border-radius: 6px; height: 10px; overflow: hidden; }
+  .progress-bar { background: #238636; height: 100%; width: 0%; transition: width .2s; }
+  .progress-text { font-size: 12px; color: #8b949e; margin-top: 5px; }
+
+  .log {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    min-height: 40px;
+    margin-bottom: 14px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .log.error { color: #f85149; }
+  .log.ok { color: #3fb950; }
+
+  .history-wrap { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 12px 14px; }
+  .history-title { font-size: 13px; color: #8b949e; margin-bottom: 8px; }
+  .history-list { list-style: none; }
+  .history-list li { padding: 8px 0; border-top: 1px solid #30363d; font-size: 13px; display: flex; gap: 8px; align-items:  center; flex-wrap: wrap; }
+  .history-list a { color: #58a6ff; text-decoration: none; word-break: break-all; }
+  .history-list a:hover { text-decoration: underline; }
+  .hidden { display: none !important; }
+
+  @media (max-width: 560px) {
+    .card { flex-direction: column; }
+    #fetchBtn, #downloadBtn { width: 100%; }
+    .thumb { width: 100px; height: 56px; }
+  }
+
+  script.js
+
+  // ============ FreePy YouTube Yükləyici ============
+  // Tamamilə brauzerdə işləyir, backend serverə ehtiyac yoxdur.
+  // API: CORS-dəstəkli YouTube məlumat API-si (ytdl.aca.im) — direct CDN URL-ləri qaytarır.
+
+  const urlInput = document.getElementById('urlInput');
+  const fetchBtn = document.getElementById('fetchBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const infoBox = document.getElementById('infoBox');
+  const controls = document.getElementById('controls');
+  const logEl = document.getElementById('log');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  const progressWrap = document.getElementById('progressWrap');
+
+  const audioSel = document.getElementById('audioSel');
+  const videoSel = document.getElementById('videoSel');
+  const typeSel = document.getElementById('typeSel');
+
+  const API_URL = 'https://ytdl.aca.im/api/v1/search?q=';
+
+  let current = null; // { title, thumb, duration, audio:[{itag,name,url,size}], video:[{itag,name,url,size}] }
+
+  function log(msg, type = '') {
+    logEl.textContent += msg + '\n';
+    logEl.className = 'log ' + type;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function setProgress(p) {
+    progressBar.style.width = p + '%';
+    progressText.textContent = p + '%';
+  }
+
+  // ---- YouTube linkini normalize et ----
+  function normalizeUrl(u) {
+    u = u.trim();
+    if (!u) return null;
+    // youtu.be/xxxx
+    let m = u.match(/youtu\.be\/([\w-]+)/);
+    if (m) return 'https://www.youtube.com/watch?v=' + m[1];
+    if (/youtube\.com\/watch\?v=/.test(u)) return u;
+    if (/youtube\.com\/shorts\/([\w-]+)/.test(u)) {
+      return u.replace(/shorts\//, 'watch?v=');
+    }
+    return null;
+  }
+
+  // ---- Məlumatları al ----
+  fetchBtn.addEventListener('click', async () => {
+    const norm = normalizeUrl(urlInput.value);
+    if (!norm) { log('Xəta: Düzgün YouTube linki daxil et.', 'error'); return; }
+
+    fetchBtn.disabled = true;
+    log('Məlumat alınıyor: ' + norm);
+    setProgress(0);
+
+    try {
+      const res = await fetch(API_URL + encodeURIComponent(norm) + '&format=json');
+      if (!res.ok) throw new Error('API HTTP ' + res.status);
+      const data = await res.json();
+
+      if (!data || !data.videoDetails) throw new Error('API məlumat qaytarmadı');
+
+      const title = data.videoDetails.title || 'video';
+      const thumb = data.videoDetails.thumbnail || '';
+      const duration = parseInt(data.videoDetails.lengthSeconds || 0, 10);
+
+      const formats = data.formats || [];
+      const audio = formats
+        .filter(f => f.hasAudio && !f.hasVideo)
+        .map(f => ({ itag: f.itag, name: f.qualityLabel || f.mimeType || ('itag '+f.itag), url: f.url, size:
+  f.contentLength ? Math.round(f.contentLength/1048576)+' MB' : '' }))
+        .sort((a,b) => (b.itag||0) - (a.itag||0));
+      const video = formats
+        .filter(f => f.hasVideo)
+        .map(f => ({ itag: f.itag, name: f.qualityLabel || f.fps+'fps', url: f.url, size: f.contentLength ?
+  Math.round(f.contentLength/1048576)+' MB' : '', hasAudio: f.hasAudio }))
+        .sort((a,b) => (parseInt((b.name||'0'))||0) - (parseInt((a.name||'0'))||0));
+
+      if (!audio.length && !video.length) throw new Error('Format tapılmadı');
+
+      current = { title, thumb, duration, audio, video };
+
+      // UI-yi doldur
+      document.getElementById('thumb').src = thumb;
+      document.getElementById('infoTitle').textContent = title;
+      document.getElementById('infoMeta').textContent = duration + ' saniyə · ' + (video.length + audio.length) + '
+  format';
+      infoBox.classList.remove('hidden');
+
+      audioSel.innerHTML = audio.map((f,i) => `<option value="${i}">${f.name}${f.size?' · '+f.size:''}</option>`).join('')  || '<option value="-1">yox</option>';
+      videoSel.innerHTML = video.map((f,i) => `<option value="${i}">${f.name}${f.size?' · '+f.size:''}${f.hasAudio?' (ses
+  var)':''}</option>`).join('') || '<option value="-1">yox</option>';
+
+      controls.classList.remove('hidden');
+      log('Məlumat alındı: ' + title, 'ok');
+    } catch (e) {
+      log('Xəta: ' + e.message, 'error');
+    } finally {
+      fetchBtn.disabled = false;
+      setProgress(0);
+    }
+  });
+
+  // ---- Brauzerdən endirmə ----
+  async function downloadUrl(url, filename) {
+    // əvvəlcə Blob kimi oxuyuruq (filename ilə) — CORS-dəstəkli CDN-lər üçün
+    return new Promise((resolve, reject) => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Bəzi brauzərlər cross-origin download-u dəstək etmir → fetch+Blob cəhdı
+      resolve();
+    });
+  }
+
+  async function fetchBlobDownload(url, filename) {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error('Endirmə HTTP ' + res.status);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 4000);
+  }
+
+  // ---- Yüklə ----
+  downloadBtn.addEventListener('click', async () => {
+    if (!current) return;
+    const type = typeSel.value;
+    const ai = parseInt(audioSel.value, 10);
+    const vi = parseInt(videoSel.value, 10);
+
+    downloadBtn.disabled = true;
+    progressWrap.classList.remove('hidden');
+    setProgress(5);
+
+    const safeName = current.title.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_').slice(0, 60);
+
+    try {
+      if (type === 'audio') {
+        const f = current.audio[ai];
+        if (!f) throw new Error('Audio format seçilməyib');
+        log('Audio endirilir: ' + f.name);
+        await fetchBlobDownload(f.url, safeName + '.m4a');
+        saveHistory('Audio', current.title, f.url);
+        log('Tamam: ' + safeName + '.m4a', 'ok');
+      } else if (type === 'video') {
+        const f = current.video[vi];
+        if (!f) throw new Error('Video format seçilməyib');
+        const ext = (f.url||'').includes('.webm') ? 'webm' : 'mp4';
+        log('Video endirilir: ' + f.name + (f.hasAudio ? '' : ' (ses yoxdur)'));
+        await fetchBlobDownload(f.url, safeName + '.' + ext);
+        saveHistory('Video' + (f.hasAudio ? '' : '(sesiz)'), current.title, f.url);
+        log('Tamam: ' + safeName + '.' + ext, 'ok');
+      } else { // both
+        const a = current.audio[ai];
+        const v = current.video[vi];
+        if (!a || !v) throw new Error('Format seçilməyib');
+        log('Audio endirilir...');
+        await fetchBlobDownload(a.url, safeName + '_audio.m4a');
+        log('Video endirilir...');
+        await fetchBlobDownload(v.url, safeName + '_video.mp4');
+        saveHistory('Audio+Video', current.title, a.url + ' | ' + v.url);
+        log('Tamam: 2 fayl endirildi', 'ok');
+      }
+      setProgress(100);
+    } catch (e) {
+      log('Yükləmə xətası: ' + e.message + ' — direct link ilə cəhd edilir…', 'error');
+      // Fallback: direct navigation (bəzi CDN-lər CORS-u dəstək etmir)
+      try {
+        if (type === 'audio') await downloadUrl(current.audio[parseInt(audioSel.value,10)].url, safeName + '.m4a');
+        else if (type === 'video') await downloadUrl(current.video[parseInt(videoSel.value,10)].url, safeName + '.mp4');
+        else {
+          await downloadUrl(current.audio[parseInt(audioSel.value,10)].url, safeName + '_audio.m4a');
+          await downloadUrl(current.video[parseInt(videoSel.value,10)].url, safeName + '_video.mp4');
+        }
+        log('Fallback endirməsi işlədi', 'ok');
+      } catch (e2) { log('Endirmə tamamilə mismatch: ' + e2.message, 'error'); }
+    } finally {
+      downloadBtn.disabled = false;
+      progressWrap.classList.add('hidden');
+    }
+  });
+
+  // ---- Tarix (LocalStorage) ----
+  const HISTORY_KEY = 'freepy_history_v1';
+  function saveHistory(type, title, url) {
+    try {
+      const list = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      list.unshift({ type, title, url, time: new Date().toLocaleString('az-AZ') });
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 50)));
+      renderHistory();
+    } catch(e) {}
+  }
+  function renderHistory() {
+    const ul = document.getElementById('historyList');
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch(e) {}
+    ul.innerHTML = list.map(h => `
+      <li>
+        <span class="tag">${h.type}</span>
+        <span>${escapeHtml(h.title)}</span>
+        <span class="time">${h.time}</span>
+        <a href="${escapeAttr(h.url)}" target="_blank" rel="noopener">link</a>
+      </li>`).join('');
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function escapeAttr(s){ return escapeHtml(s); }
+  renderHistory();
